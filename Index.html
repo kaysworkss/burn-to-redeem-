@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foundation NFT Rescue Tool</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #181818;
+    --surface2: #212121;
+    --border: rgba(255,255,255,0.09);
+    --border-hover: rgba(255,255,255,0.18);
+    --text: #f0ede8;
+    --text-secondary: #888;
+    --text-tertiary: #555;
+    --accent: #e8dcc8;
+    --danger: #ff5a5a;
+    --danger-bg: rgba(255,90,90,0.08);
+    --danger-border: rgba(255,90,90,0.22);
+    --success: #5adf8a;
+    --success-bg: rgba(90,223,138,0.08);
+    --success-border: rgba(90,223,138,0.22);
+    --warning: #f5c842;
+    --warning-bg: rgba(245,200,66,0.08);
+    --warning-border: rgba(245,200,66,0.22);
+    --info: #6ab0f5;
+    --info-bg: rgba(106,176,245,0.08);
+    --info-border: rgba(106,176,245,0.22);
+    --purple: #c084fc;
+    --purple-bg: rgba(192,132,252,0.08);
+    --purple-border: rgba(192,132,252,0.22);
+    --radius: 10px;
+    --radius-sm: 6px;
+    --radius-pill: 20px;
+  }
+
+  html { scroll-behavior: smooth; }
+  body { font-family: 'DM Sans','Helvetica Neue',sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.6; }
+  .page { max-width: 700px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+
+  /* Hero */
+  .hero { margin-bottom: 2.5rem; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 500; letter-spacing: .3px; padding: 5px 12px; border-radius: var(--radius-pill); background: var(--danger-bg); color: var(--danger); border: 0.5px solid var(--danger-border); margin-bottom: 14px; }
+  .hero-badge .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.2;} }
+  .hero h1 { font-size: 30px; font-weight: 600; letter-spacing: -.6px; margin-bottom: 10px; line-height: 1.2; }
+  .hero p { font-size: 15px; color: var(--text-secondary); line-height: 1.75; max-width: 560px; }
+
+  /* Steps */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+  .step { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: border-color .2s; }
+  .step.active { border-color: var(--border-hover); }
+  .step-header { display: flex; align-items: center; gap: 14px; padding: 18px 22px; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; background: var(--surface2); color: var(--text-tertiary); border: 0.5px solid var(--border); transition: all .2s; }
+  .step-num.active { background: var(--accent); color: #000; border-color: transparent; }
+  .step-num.done   { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+  .step-title  { font-size: 15px; font-weight: 500; flex: 1; }
+  .step-status { font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
+  .step-body   { padding: 0 22px 22px; display: none; }
+  .step-body.open { display: block; }
+  .step-hint   { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.7; }
+
+  /* Notices */
+  .notice { display: flex; gap: 10px; padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 13px; line-height: 1.65; }
+  .notice.warn   { background: var(--warning-bg); color: var(--warning); border: 0.5px solid var(--warning-border); }
+  .notice.info   { background: var(--info-bg);    color: var(--info);    border: 0.5px solid var(--info-border); }
+  .notice-icon { flex-shrink: 0; margin-top: 1px; }
+
+  /* Wallet */
+  .wallet-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--surface2); border: 0.5px solid var(--border); border-radius: var(--radius); }
+  .wdot { width: 9px; height: 9px; border-radius: 50%; background: var(--border-hover); flex-shrink: 0; transition: background .3s; }
+  .wdot.on { background: var(--success); }
+  .waddr { font-family: 'DM Mono',monospace; font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wnet  { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; }
+
+  /* Form */
+  input,select { width: 100%; font-family: 'DM Sans',sans-serif; font-size: 14px; padding: 10px 13px; border-radius: var(--radius-sm); border: 0.5px solid var(--border); background: var(--surface2); color: var(--text); outline: none; transition: border-color .15s; }
+  input:focus,select:focus { border-color: var(--border-hover); }
+  input::placeholder { color: var(--text-tertiary); }
+  .input-group { display: flex; gap: 8px; align-items: center; }
+  .input-group input { flex: 1; }
+
+  /* Buttons */
+  button { cursor: pointer; font-family: 'DM Sans',sans-serif; font-size: 13px; font-weight: 500; padding: 9px 18px; border-radius: var(--radius-sm); border: 0.5px solid var(--border-hover); background: transparent; color: var(--text); transition: all .15s; white-space: nowrap; }
+  button:hover { background: var(--surface2); border-color: rgba(255,255,255,.28); }
+  button:active { transform: scale(.98); }
+  button:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+  button.primary { background: var(--accent); color: #000; border-color: transparent; font-weight: 600; }
+  button.primary:hover { background: #f5eedd; }
+  button.sm { font-size: 12px; padding: 6px 13px; }
+  button.danger  { border-color: var(--danger-border);  color: var(--danger); }
+  button.danger:hover  { background: var(--danger-bg); }
+  button.warning { border-color: var(--warning-border); color: var(--warning); }
+  button.warning:hover { background: var(--warning-bg); }
+  button.success { border-color: var(--success-border); color: var(--success); }
+  button.muted   { border-color: var(--border); color: var(--text-tertiary); }
+
+  /* Contract tabs */
+  .ctabs { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 14px; }
+  .ctab { font-size: 12px; padding: 5px 14px; border-radius: var(--radius-pill); border: 0.5px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; transition: all .15s; }
+  .ctab:hover { background: var(--surface2); }
+  .ctab.sel { background: var(--accent); color: #000; border-color: transparent; font-weight: 600; }
+
+  /* Contract list */
+  .contract-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; max-height: 280px; overflow-y: auto; }
+  .contract-list::-webkit-scrollbar { width: 4px; }
+  .contract-list::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 2px; }
+  .citem { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; background: var(--surface2); transition: all .15s; }
+  .citem:hover { border-color: var(--border-hover); }
+  .citem.sel { border-color: var(--accent); background: rgba(232,220,200,0.05); }
+  .citem-radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--border-hover); flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .citem.sel .citem-radio { border-color: var(--accent); background: var(--accent); }
+  .citem.sel .citem-radio::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #000; }
+  .citem-info { flex: 1; min-width: 0; }
+  .citem-name { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .citem-addr { font-family: 'DM Mono',monospace; font-size: 11px; color: var(--text-tertiary); word-break: break-all; }
+  .citem-desc { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+  .cbadge { font-size: 10px; padding: 2px 8px; border-radius: var(--radius-pill); font-weight: 500; flex-shrink: 0; margin-top: 2px; }
+  .cbadge.nft    { background: var(--info-bg);    color: var(--info); }
+  .cbadge.market { background: var(--warning-bg); color: var(--warning); }
+
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 14px 0; }
+  .field-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 7px; }
+
+  /* Scan */
+  .scan-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .range-box { background: var(--surface2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 14px; display: none; }
+  .range-box.open { display: block; }
+  .range-box p { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
+
+  /* Progress */
+  .check-progress { margin-bottom: 16px; }
+  .check-bar-wrap { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+  .check-bar { height: 100%; width: 0%; background: var(--accent); border-radius: 2px; transition: width .25s ease; }
+  .check-label { font-size: 12px; color: var(--text-secondary); }
+
+  /* Summary bar */
+  .summary-bar { display: flex; gap: 10px; flex-wrap: wrap; padding: 12px 16px; background: var(--surface2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 18px; align-items: center; }
+  .summary-stat { font-size: 12px; display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+  .summary-stat .sdot { width: 7px; height: 7px; border-radius: 50%; }
+  .sdot.buynow  { background: var(--danger); }
+  .sdot.reserve { background: var(--warning); }
+  .sdot.unknown { background: var(--text-tertiary); }
+  .sdot.returned{ background: var(--success); }
+  .summary-actions { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* Token groups */
+  .group-section { margin-bottom: 18px; }
+  .group-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; border-radius: var(--radius-sm); margin-bottom: 7px; gap: 10px; flex-wrap: wrap; }
+  .group-header.buynow   { background: var(--danger-bg);  border: 0.5px solid var(--danger-border); }
+  .group-header.reserve  { background: var(--warning-bg); border: 0.5px solid var(--warning-border); }
+  .group-header.unknown  { background: var(--surface2);   border: 0.5px solid var(--border); }
+  .group-header.returned { background: var(--success-bg); border: 0.5px solid var(--success-border); }
+  .group-title { display: flex; align-items: center; gap: 8px; }
+  .group-icon  { font-size: 14px; }
+  .group-name  { font-size: 13px; font-weight: 600; }
+  .group-name.buynow  { color: var(--danger); }
+  .group-name.reserve { color: var(--warning); }
+  .group-name.unknown { color: var(--text-secondary); }
+  .group-name.returned{ color: var(--success); }
+  .group-sub   { font-size: 11px; color: var(--text-secondary); margin-top: 2px; font-family: 'DM Mono',monospace; }
+  .group-count { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--radius-pill); }
+  .group-count.buynow  { background: var(--danger-bg);  color: var(--danger); }
+  .group-count.reserve { background: var(--warning-bg); color: var(--warning); }
+  .group-count.unknown { background: var(--surface2);   color: var(--text-tertiary); border: 0.5px solid var(--border); }
+  .group-count.returned{ background: var(--success-bg); color: var(--success); }
+  .group-left { display: flex; flex-direction: column; gap: 2px; }
+
+  /* Token rows */
+  .token-list { display: flex; flex-direction: column; gap: 5px; }
+  .trow { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface2); transition: border-color .15s; }
+  .trow:hover { border-color: var(--border-hover); }
+  .trow.buynow-row  { border-left: 2px solid var(--danger); }
+  .trow.reserve-row { border-left: 2px solid var(--warning); }
+  .trow.unknown-row { border-left: 2px solid var(--border-hover); }
+  .trow.done-row    { border-left: 2px solid var(--success); opacity: .65; }
+  .tid   { font-family: 'DM Mono',monospace; font-size: 13px; font-weight: 500; min-width: 64px; flex-shrink: 0; }
+  .tmeta { font-size: 12px; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tprice{ font-size: 11px; color: var(--text-tertiary); flex-shrink: 0; font-family: 'DM Mono',monospace; }
+  .pill  { font-size: 11px; padding: 2px 9px; border-radius: var(--radius-pill); font-weight: 500; flex-shrink: 0; }
+  .pill.buynow  { background: var(--danger-bg);  color: var(--danger); }
+  .pill.reserve { background: var(--warning-bg); color: var(--warning); }
+  .pill.unknown { background: var(--surface2);   color: var(--text-tertiary); border: 0.5px solid var(--border); }
+  .pill.pending { background: var(--info-bg);    color: var(--info); }
+  .pill.returned{ background: var(--success-bg); color: var(--success); }
+  .pill.bidded  { background: var(--purple-bg);  color: var(--purple); }
+  .empty-state { text-align: center; padding: 1.5rem; color: var(--text-tertiary); font-size: 13px; line-height: 1.8; }
+
+  /* Market tabs */
+  .market-tabs { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+  .mtab { font-size: 11px; padding: 4px 12px; border-radius: var(--radius-pill); border: 0.5px solid var(--border); background: transparent; color: var(--text-secondary); cursor: pointer; transition: all .15s; }
+  .mtab:hover { background: var(--surface2); }
+  .mtab.sel { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); font-weight: 600; }
+
+  /* Log */
+  .log { font-family: 'DM Mono',monospace; font-size: 12px; background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; max-height: 200px; overflow-y: auto; line-height: 2; }
+  .log::-webkit-scrollbar { width: 4px; }
+  .log::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 2px; }
+  .log-line       { display: block; }
+  .log-line.ok    { color: var(--success); }
+  .log-line.err   { color: var(--danger); }
+  .log-line.inf   { color: var(--info); }
+  .log-line.warn  { color: var(--warning); }
+  .log-line.muted { color: var(--text-tertiary); }
+
+  /* FAQ */
+  .faq { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 0.5px solid var(--border); }
+  .faq-heading { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 12px; }
+  .faq-item { border-bottom: 0.5px solid var(--border); }
+  .faq-q { font-size: 14px; padding: 14px 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .faq-arr { color: var(--text-tertiary); font-size: 11px; transition: transform .2s; flex-shrink: 0; }
+  .faq-q.open .faq-arr { transform: rotate(180deg); }
+  .faq-a { font-size: 13px; color: var(--text-secondary); line-height: 1.75; padding-bottom: 14px; display: none; }
+  .faq-a.open { display: block; }
+
+  /* Footer */
+  .footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 0.5px solid var(--border); display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .footer a { font-size: 12px; color: var(--text-tertiary); text-decoration: none; }
+  .footer a:hover { color: var(--text-secondary); }
+  .footer-sep { color: var(--border-hover); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hero">
+    <div class="hero-badge"><span class="pulse"></span> Foundation is offline</div>
+    <h1>Foundation NFT<br>Rescue Tool</h1>
+    <p>Foundation has shut down. This tool detects each listing type — Buy Now or Reserve Auction — and calls the exact right cancel function, so you never hit an error.</p>
+  </div>
+
+  <div class="steps">
+
+    <!-- STEP 1 -->
+    <div class="step active" id="step1">
+      <div class="step-header">
+        <div class="step-num active" id="num1">1</div>
+        <div class="step-title">Connect your wallet</div>
+        <span class="step-status" id="status1"></span>
+      </div>
+      <div class="step-body open" id="body1">
+        <p class="step-hint">Use the exact wallet you used to mint or list on Foundation. Only the original seller can cancel a listing.</p>
+        <div class="notice warn">
+          <span class="notice-icon">⚠</span>
+          <span>This tool runs entirely in your browser. Nothing leaves your computer except the transactions you sign. Always verify the contract address and function name in your wallet popup before confirming.</span>
+        </div>
+        <div class="wallet-card">
+          <div class="wdot" id="wdot"></div>
+          <div style="flex:1;min-width:0;">
+            <div class="waddr" id="waddr">Not connected</div>
+            <div class="wnet" id="wnet">MetaMask · Coinbase Wallet · Rabby</div>
+          </div>
+          <button class="primary" id="btn-connect" onclick="connectWallet()">Connect wallet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step" id="step2">
+      <div class="step-header">
+        <div class="step-num" id="num2">2</div>
+        <div class="step-title">Choose NFT contract</div>
+        <span class="step-status" id="status2"></span>
+      </div>
+      <div class="step-body" id="body2">
+        <p class="step-hint">Most artists minted to the shared Foundation collection before early 2022. If you deployed your own collection contract, enter it below.</p>
+        <div class="ctabs">
+          <button class="ctab sel" onclick="filterContracts('nft',this)">NFT contracts</button>
+          <button class="ctab" onclick="filterContracts('market',this)">Market contracts</button>
+          <button class="ctab" onclick="filterContracts('all',this)">All known</button>
+        </div>
+        <div class="contract-list" id="nft-contract-list"></div>
+        <div class="divider"></div>
+        <div class="field-label">Or enter a custom contract address</div>
+        <div class="input-group">
+          <input type="text" id="custom-nft-addr" placeholder="0x… your own collection contract" />
+          <button onclick="selectCustomNFT()">Use this</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step" id="step3">
+      <div class="step-header">
+        <div class="step-num" id="num3">3</div>
+        <div class="step-title">Find &amp; classify your tokens</div>
+        <span class="step-status" id="status3"></span>
+      </div>
+      <div class="step-body" id="body3">
+        <p class="step-hint">We scan for your tokens, then query the market contract to detect each listing type. Tokens are grouped so the right cancel function is always called — no more errors from calling the wrong one.</p>
+        <div class="scan-actions">
+          <button onclick="scanTransferEvents()" id="btn-scan">Scan transfer history</button>
+          <button onclick="toggleRange()">Enter token IDs manually</button>
+        </div>
+        <div class="range-box" id="range-box">
+          <p>Enter token IDs as a comma-separated list or a range (e.g. <strong>100-200</strong>). Find your IDs on Etherscan under your wallet's ERC-721 transfer history.</p>
+          <div class="input-group">
+            <input type="text" id="token-ids-input" placeholder="1234, 5678   or   100-200" />
+            <button onclick="scanByIds()">Check these IDs</button>
+          </div>
+        </div>
+
+        <!-- Classification progress -->
+        <div class="check-progress" id="check-progress" style="display:none;">
+          <div class="check-label" id="check-label">Checking listings…</div>
+          <div class="check-bar-wrap"><div class="check-bar" id="check-bar"></div></div>
+        </div>
+
+        <!-- Results -->
+        <div id="token-results" style="display:none;">
+          <div class="divider"></div>
+          <div class="summary-bar" id="summary-bar"></div>
+
+          <!-- Buy Now -->
+          <div class="group-section" id="grp-buynow" style="display:none;">
+            <div class="group-header buynow">
+              <div class="group-left">
+                <div class="group-title">
+                  <span class="group-icon">🏷</span>
+                  <span class="group-name buynow">Buy Now listings</span>
+                  <span class="group-count buynow" id="cnt-buynow">0</span>
+                </div>
+                <div class="group-sub">calls cancelBuyPrice(nftContract, tokenId)</div>
+              </div>
+              <button class="sm danger" id="btn-delist-buynow" onclick="delistGroup('buynow')">Delist all Buy Now</button>
+            </div>
+            <div class="token-list" id="list-buynow"></div>
+          </div>
+
+          <!-- Reserve Auction -->
+          <div class="group-section" id="grp-reserve" style="display:none;">
+            <div class="group-header reserve">
+              <div class="group-left">
+                <div class="group-title">
+                  <span class="group-icon">⏳</span>
+                  <span class="group-name reserve">Reserve Auctions</span>
+                  <span class="group-count reserve" id="cnt-reserve">0</span>
+                </div>
+                <div class="group-sub">calls cancelReserveAuction(auctionId) · only if no bids yet</div>
+              </div>
+              <button class="sm warning" id="btn-delist-reserve" onclick="delistGroup('reserve')">Delist cancellable auctions</button>
+            </div>
+            <div class="token-list" id="list-reserve"></div>
+          </div>
+
+          <!-- Unknown -->
+          <div class="group-section" id="grp-unknown" style="display:none;">
+            <div class="group-header unknown">
+              <div class="group-left">
+                <div class="group-title">
+                  <span class="group-icon">❓</span>
+                  <span class="group-name unknown">Not detected on this market</span>
+                  <span class="group-count unknown" id="cnt-unknown">0</span>
+                </div>
+                <div class="group-sub">may be on a different market version — try switching market contract in step 4</div>
+              </div>
+            </div>
+            <div class="token-list" id="list-unknown"></div>
+          </div>
+
+          <!-- Returned -->
+          <div class="group-section" id="grp-returned" style="display:none;">
+            <div class="group-header returned">
+              <div class="group-left">
+                <div class="group-title">
+                  <span class="group-icon">✓</span>
+                  <span class="group-name returned">Returned to wallet</span>
+                  <span class="group-count returned" id="cnt-returned">0</span>
+                </div>
+                <div class="group-sub">successfully delisted in this session</div>
+              </div>
+            </div>
+            <div class="token-list" id="list-returned"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step" id="step4">
+      <div class="step-header">
+        <div class="step-num" id="num4">4</div>
+        <div class="step-title">Cancel listings</div>
+        <span class="step-status" id="status4"></span>
+      </div>
+      <div class="step-body" id="body4">
+        <p class="step-hint">The correct cancel function is called automatically for each token type. You only pay the Ethereum gas fee (~$1–10). If tokens appear in "Not detected", try switching to Market v1 below.</p>
+        <div style="margin-bottom:16px;">
+          <div class="field-label">Market contract</div>
+          <div class="market-tabs" id="market-tabs"></div>
+          <div class="input-group">
+            <input type="text" id="market-addr-input" placeholder="0x… custom market contract" />
+            <button onclick="setMarketAddr()">Use custom</button>
+          </div>
+        </div>
+        <div class="notice info">
+          <span class="notice-icon">ℹ</span>
+          <span><strong>Reserve auctions with an active bid cannot be cancelled</strong> — these are shown with a purple "Has bid" tag. Wait for the auction timer to expire, then settle it via Etherscan.</span>
+        </div>
+        <div id="log-wrap" style="display:none; margin-top:14px;">
+          <div class="field-label" style="margin-bottom:7px;">Activity log</div>
+          <div class="log" id="activity-log"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /steps -->
+
+  <div class="faq">
+    <div class="faq-heading">Common questions</div>
+    <div id="faq-container"></div>
+  </div>
+
+  <div class="footer">
+    <a href="https://etherscan.io/address/0xcDA72070E455bb31C7690a170224Ce43623d0B6f" target="_blank">Foundation Market on Etherscan</a>
+    <span class="footer-sep">·</span>
+    <a href="https://etherscan.io/address/0x3B3ee1931Dc30C1957379FAc9aba94D1C48a5405" target="_blank">Foundation NFT on Etherscan</a>
+    <span class="footer-sep">·</span>
+    <span style="font-size:12px;color:var(--text-tertiary);">Community tool · use at your own risk · MIT license</span>
+  </div>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+<script>
+
+const CONTRACTS = [
+  { id:'fnd-nft',         type:'nft',    name:'Foundation shared collection (FNDNFT721)', addr:'0x3B3ee1931Dc30C1957379FAc9aba94D1C48a5405', desc:'The original shared contract — most pre-2022 artworks live here. Start here.', network:'Ethereum mainnet' },
+  { id:'fnd-drops',       type:'nft',    name:'Foundation Drops (ERC-721 editions)',      addr:'0xFa0E023f06D072eE0f4C5cD9e15bac1f14c7EB5', desc:"NFTs minted via Foundation's Drops product.", network:'Ethereum mainnet' },
+  { id:'fnd-worlds',      type:'nft',    name:'Foundation Worlds (gallery collections)',  addr:'0x33d3C32E3E6a6dBCE05C6E71e16fEcfaDF52f8E9', desc:"NFTs minted through Foundation's Worlds / curated gallery feature.", network:'Ethereum mainnet' },
+  { id:'fnd-base-nft',    type:'nft',    name:'Foundation Base collection (Base L2)',     addr:'0x7D2B4df0064Ece2abF3A7e3CB47e979F3cf3B78f', desc:'Foundation shared NFT contract on Base network.', network:'Base' },
+  { id:'fnd-market-v2',   type:'market', name:'Foundation Market v2 (current proxy)',     addr:'0xcDA72070E455bb31C7690a170224Ce43623d0B6f', desc:'Active market proxy — covers reserve auctions, buy price, offers. Use this first.', network:'Ethereum mainnet' },
+  { id:'fnd-market-v1',   type:'market', name:'Foundation Market v1 (legacy impl.)',      addr:'0x2e784ad58888960f9D4f9AC41A5A43b5D73b3734', desc:'Previous market implementation recorded on Etherscan.', network:'Ethereum mainnet' },
+  { id:'fnd-market-impl', type:'market', name:'Foundation NFTMarket implementation',      addr:'0xecb3ce1154af51e117d6cf9e05d6bd7f24e4a0e1', desc:'Underlying implementation behind Market v2 (EIP-1967 proxy).', network:'Ethereum mainnet' },
+  { id:'fnd-base-market', type:'market', name:'Foundation Market (Base L2)',              addr:'0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC', desc:'Foundation market contract on Base network.', network:'Base' },
+];
+
+const FAQS = [
+  { q:"Why isn't my NFT showing in my wallet?", a:"When you list on Foundation, the NFT physically moves from your wallet into the marketplace contract as escrow. It only returns after you cancel the listing or a sale completes." },
+  { q:"What's the difference between Buy Now and Reserve Auction?", a:"Buy Now (fixed price) listings can always be cancelled immediately using cancelBuyPrice. Reserve Auctions are 24-hour timed auctions that start when the first bid meets the reserve price — they can only be cancelled if nobody has bid yet, using cancelReserveAuction." },
+  { q:"Why does the tool detect listing types first?", a:"Calling the wrong cancel function wastes your gas fee and returns a confusing on-chain error. By querying the market contract first, this tool knows exactly which function to call for each token — no guesswork, no failed transactions." },
+  { q:"My auction shows 'Has bid' — what do I do?", a:"Auctions with an active bid cannot be cancelled by contract design. You must wait for the 24-hour timer to expire. Once it ends, either you or the winning bidder can settle the auction via Etherscan's write-contract interface." },
+  { q:"My tokens appear in 'Not detected'. What now?", a:"They may be listed on a different market contract version. In Step 4, switch the market contract to 'v1 (legacy)' and re-run the classification by clicking Scan again. You can also use 'Try anyway' on each unknown token to attempt both cancel functions." },
+  { q:"Which NFT contract should I scan?", a:"If you minted before early 2022, your tokens are almost certainly on the 'Foundation shared collection' (FNDNFT721). If you deployed your own collection, choose that contract or enter its address manually." },
+  { q:"What does it cost?", a:"You only pay the standard Ethereum gas fee — typically $1–10. Nothing goes to this tool. The transaction goes directly to Foundation's verified smart contract." },
+  { q:"Is this tool safe?", a:"This tool only calls verified, public Foundation contract functions. No private keys leave your device. Every transaction is shown in your wallet popup before you sign — always verify the target contract address." },
+];
+
+// ── State
+let provider, signer, userAddr;
+let selectedNFT = null;
+let selectedMarketAddr = '0xcDA72070E455bb31C7690a170224Ce43623d0B6f';
+let tokens = [];
+let currentFilter = 'nft';
+const ZERO = '0x0000000000000000000000000000000000000000';
+
+// ── ABIs
+const ERC721_ABI = [
+  "function tokenURI(uint256 tokenId) view returns (string)",
+  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
+];
+const MARKET_ABI = [
+  "function getBuyPrice(address nftContract, uint256 tokenId) view returns (address seller, uint256 price)",
+  "function getReserveAuction(uint256 auctionId) view returns (tuple(address nftContract, address seller, uint256 tokenId, uint256 duration, uint256 extensionDuration, uint256 endTime, address bidder, uint256 amount))",
+  "function getReserveAuctionIdFor(address nftContract, uint256 tokenId) view returns (uint256)",
+  "function cancelBuyPrice(address nftContract, uint256 tokenId)",
+  "function cancelReserveAuction(uint256 auctionId)",
+];
+
+// ── Init
+window.addEventListener('DOMContentLoaded', () => { buildContractList('nft'); buildMarketTabs(); buildFAQ(); });
+if (window.ethereum) {
+  window.ethereum.on('accountsChanged', a => { if (a.length) { userAddr = a[0]; document.getElementById('waddr').textContent = userAddr; } });
+  window.ethereum.on('chainChanged', () => location.reload());
+}
+
+// ── FAQ
+function buildFAQ() {
+  const el = document.getElementById('faq-container');
+  FAQS.forEach((f, i) => {
+    el.innerHTML += `<div class="faq-item"><div class="faq-q" id="fq${i}" onclick="toggleFAQ(${i})">${f.q}<span class="faq-arr">▾</span></div><div class="faq-a" id="fa${i}">${f.a}</div></div>`;
+  });
+}
+function toggleFAQ(i) { document.getElementById('fq'+i).classList.toggle('open'); document.getElementById('fa'+i).classList.toggle('open'); }
+
+// ── Steps
+function openStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('body'+i).className = 'step-body'+(i<=n?' open':'');
+    document.getElementById('step'+i).className = 'step'+(i===n?' active':'');
+  }
+  document.getElementById('num'+n).classList.add('active');
+}
+
+// ── Wallet
+async function connectWallet() {
+  if (!window.ethereum) { alert('No browser wallet found.\n\nInstall MetaMask (metamask.io) as a browser extension then reload.'); return; }
+  try {
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    userAddr = await signer.getAddress();
+    const net = await provider.getNetwork();
+    const chain = Number(net.chainId);
+    const netLabel = chain===1?'Ethereum mainnet':chain===8453?'Base':net.name;
+    document.getElementById('wdot').className = 'wdot on';
+    document.getElementById('waddr').textContent = userAddr;
+    document.getElementById('wnet').textContent = 'Connected · '+netLabel;
+    document.getElementById('btn-connect').textContent = 'Connected ✓';
+    document.getElementById('btn-connect').disabled = true;
+    document.getElementById('num1').className = 'step-num done';
+    document.getElementById('status1').textContent = userAddr.slice(0,6)+'…'+userAddr.slice(-4);
+    buildContractList('nft'); buildMarketTabs(); openStep(2);
+  } catch(e) { alert('Connection failed: '+(e.message||e)); }
+}
+
+// ── Contract selection
+function buildContractList(filter) {
+  const el = document.getElementById('nft-contract-list'); el.innerHTML = '';
+  CONTRACTS.filter(c => filter==='all'||c.type===filter).forEach(c => {
+    const sel = selectedNFT && selectedNFT.id===c.id;
+    el.innerHTML += `<div class="citem${sel?' sel':''}" onclick="selectContract('${c.id}')">
+      <div class="citem-radio"></div>
+      <div class="citem-info">
+        <div class="citem-name">${c.name}</div>
+        <div class="citem-addr">${c.addr}</div>
+        <div class="citem-desc">${c.desc} · <em>${c.network}</em></div>
+      </div>
+      <span class="cbadge ${c.type}">${c.type==='nft'?'NFT':'Market'}</span>
+    </div>`;
+  });
+}
+function filterContracts(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.ctabs .ctab').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel'); buildContractList(filter);
+}
+function selectContract(id) {
+  selectedNFT = CONTRACTS.find(c => c.id===id);
+  document.getElementById('custom-nft-addr').value = '';
+  buildContractList(currentFilter);
+  document.getElementById('num2').className = 'step-num done';
+  document.getElementById('status2').textContent = selectedNFT.name.split('(')[0].trim();
+  resetResults(); openStep(3);
+}
+function selectCustomNFT() {
+  const v = document.getElementById('custom-nft-addr').value.trim();
+  if (!v||v.length<10) { alert('Enter a valid contract address starting with 0x.'); return; }
+  selectedNFT = { id:'custom', type:'nft', name:'Custom contract', addr:v, desc:'User-provided', network:'Ethereum mainnet' };
+  buildContractList(currentFilter);
+  document.getElementById('num2').className = 'step-num done';
+  document.getElementById('status2').textContent = v.slice(0,10)+'…';
+  resetResults(); openStep(3);
+}
+
+// ── Market contract
+function buildMarketTabs() {
+  const el = document.getElementById('market-tabs'); el.innerHTML = '';
+  CONTRACTS.filter(c => c.type==='market').forEach(c => {
+    const active = c.addr.toLowerCase()===selectedMarketAddr.toLowerCase();
+    const short = c.name.replace('Foundation Market ','').replace('Foundation ','');
+    el.innerHTML += `<button class="mtab${active?' sel':''}" onclick="pickMarket('${c.addr}',this)">${short}</button>`;
+  });
+  document.getElementById('market-addr-input').value = selectedMarketAddr;
+}
+function pickMarket(addr, btn) {
+  selectedMarketAddr = addr;
+  document.getElementById('market-addr-input').value = addr;
+  document.querySelectorAll('#market-tabs .mtab').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+function setMarketAddr() {
+  const v = document.getElementById('market-addr-input').value.trim();
+  if (v&&v.length>10) { selectedMarketAddr=v; document.querySelectorAll('#market-tabs .mtab').forEach(b=>b.classList.remove('sel')); }
+}
+
+// ── Scan
+function toggleRange() { document.getElementById('range-box').classList.toggle('open'); }
+function resetResults() {
+  tokens = [];
+  document.getElementById('token-results').style.display = 'none';
+  document.getElementById('check-progress').style.display = 'none';
+  ['buynow','reserve','unknown','returned'].forEach(g => {
+    document.getElementById('grp-'+g).style.display = 'none';
+    document.getElementById('list-'+g).innerHTML = '';
+    document.getElementById('cnt-'+g).textContent = '0';
+  });
+}
+
+async function scanTransferEvents() {
+  if (!provider||!userAddr) { alert('Connect your wallet first.'); return; }
+  if (!selectedNFT) { alert('Select an NFT contract in step 2 first.'); return; }
+  const btn = document.getElementById('btn-scan');
+  btn.disabled = true; btn.textContent = 'Scanning…';
+  resetResults();
+  try {
+    const contract = new ethers.Contract(selectedNFT.addr, ERC721_ABI, provider);
+    log(`Scanning Transfer events on ${selectedNFT.name}…`, 'inf');
+    const evts = await contract.queryFilter(contract.filters.Transfer(null, userAddr), -150000);
+    const ids = [...new Set(evts.map(e => e.args.tokenId.toString()))];
+    log(`Found ${ids.length} token(s). Detecting listing types…`, 'ok');
+    await classifyTokens(ids);
+  } catch(e) {
+    log('Scan error: '+(e.shortMessage||e.message), 'err');
+    alert('Scan failed. Make sure your wallet is on the correct network.\n\n'+e.message);
+  }
+  btn.disabled = false; btn.textContent = 'Scan transfer history';
+}
+
+async function scanByIds() {
+  if (!selectedNFT) { alert('Select an NFT contract in step 2 first.'); return; }
+  const raw = document.getElementById('token-ids-input').value.trim();
+  if (!raw) { alert('Enter at least one token ID.'); return; }
+  let ids = [];
+  if (raw.includes('-')&&!raw.includes(',')) {
+    const parts = raw.split('-').map(s => parseInt(s.trim()));
+    if (parts.length===2&&!isNaN(parts[0])&&!isNaN(parts[1])&&parts[1]>=parts[0])
+      for (let i=parts[0];i<=parts[1];i++) ids.push(i.toString());
+  } else ids = raw.split(',').map(s=>s.trim()).filter(Boolean);
+  if (!ids.length) { alert('Could not parse token IDs. Use: 1234, 5678  or  100-200'); return; }
+  resetResults();
+  log(`Loaded ${ids.length} token ID(s). Detecting listing types…`, 'inf');
+  await classifyTokens(ids);
+}
+
+// ── Classification (the key upgrade)
+async function classifyTokens(ids) {
+  if (!ids.length) { renderGroups([]); return; }
+  const progress = document.getElementById('check-progress');
+  const bar      = document.getElementById('check-bar');
+  const label    = document.getElementById('check-label');
+  progress.style.display = 'block';
+
+  const market = new ethers.Contract(selectedMarketAddr, MARKET_ABI, provider);
+  const classified = [];
+
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i];
+    label.textContent = `Checking token #${id} (${i+1} / ${ids.length})…`;
+    bar.style.width = Math.round(((i+1)/ids.length)*100)+'%';
+
+    let type = 'unknown', price = null, auctionId = null, hasBid = false;
+
+    // 1. Try Buy Now
+    try {
+      const [seller, rawPrice] = await market.getBuyPrice(selectedNFT.addr, id);
+      if (seller && seller !== ZERO) {
+        type  = 'buynow';
+        price = ethers.formatEther(rawPrice);
+        log(`#${id} → Buy Now @ ${parseFloat(price).toFixed(4)} ETH`, 'inf');
+      }
+    } catch {}
+
+    // 2. Try Reserve Auction (via getReserveAuctionIdFor)
+    if (type === 'unknown') {
+      try {
+        const aId = await market.getReserveAuctionIdFor(selectedNFT.addr, id);
+        if (aId && aId.toString() !== '0') {
+          const auction = await market.getReserveAuction(aId);
+          if (auction && auction.seller && auction.seller !== ZERO) {
+            type = 'reserve';
+            auctionId = aId.toString();
+            hasBid = auction.bidder && auction.bidder !== ZERO;
+            log(`#${id} → Reserve Auction (id:${auctionId})${hasBid?' — HAS BID, cannot cancel':''}`, hasBid?'warn':'inf');
+          }
+        }
+      } catch {
+        // Fallback: some older market versions lack getReserveAuctionIdFor
+        try {
+          const auction = await market.getReserveAuction(id);
+          if (auction && auction.seller && auction.seller !== ZERO &&
+              auction.nftContract && auction.nftContract.toLowerCase() === selectedNFT.addr.toLowerCase()) {
+            type = 'reserve';
+            auctionId = id;
+            hasBid = auction.bidder && auction.bidder !== ZERO;
+            log(`#${id} → Reserve Auction legacy (id:${id})${hasBid?' — HAS BID':''}`, hasBid?'warn':'inf');
+          }
+        } catch {}
+      }
+    }
+
+    if (type === 'unknown') log(`#${id} → Not found as listed on this market`, 'muted');
+    classified.push({ id, type, price, auctionId, hasBid, status: hasBid ? 'bidded' : 'listed' });
+  }
+
+  label.textContent = `Done — ${ids.length} token(s) classified.`;
+  bar.style.width = '100%';
+  setTimeout(() => { progress.style.display = 'none'; }, 1400);
+
+  tokens = classified;
+  renderGroups(classified);
+  openStep(4);
+  buildMarketTabs();
+  document.getElementById('market-addr-input').value = selectedMarketAddr;
+  document.getElementById('num3').className = 'step-num done';
+  document.getElementById('status3').textContent = classified.length+' token(s) found';
+}
+
+// ── Render
+function renderGroups(classified) {
+  const byType = { buynow:[], reserve:[], unknown:[], returned:[] };
+  classified.forEach(t => byType[t.status==='returned'?'returned':t.type].push(t));
+  document.getElementById('token-results').style.display = 'block';
+
+  ['buynow','reserve','unknown','returned'].forEach(group => {
+    const items = byType[group];
+    const grpEl  = document.getElementById('grp-'+group);
+    const listEl = document.getElementById('list-'+group);
+    const cntEl  = document.getElementById('cnt-'+group);
+    listEl.innerHTML = '';
+    cntEl.textContent = items.length;
+    grpEl.style.display = items.length ? 'block' : 'none';
+    items.forEach(t => { listEl.appendChild(buildTokenRow(t, group)); if (provider&&selectedNFT) fetchMeta(t.id); });
+  });
+  renderSummary(byType);
+}
+
+function buildTokenRow(t, group) {
+  const row = document.createElement('div');
+  row.className = `trow ${group}-row`; row.id = 'tr-'+t.id;
+  let pill='', btn='', extra='';
+
+  if (t.status === 'returned') {
+    pill = `<span class="pill returned">returned ✓</span>`;
+    btn  = `<button class="sm success" disabled>Done ✓</button>`;
+  } else if (group === 'buynow') {
+    if (t.price) extra = `<span class="tprice">${parseFloat(t.price).toFixed(4)} ETH</span>`;
+    pill = `<span class="pill buynow" id="tp-${t.id}">Buy Now</span>`;
+    btn  = `<button class="sm danger" id="tb-${t.id}" onclick="delistOne('${t.id}')">Cancel listing</button>`;
+  } else if (group === 'reserve') {
+    if (t.hasBid) {
+      pill = `<span class="pill bidded" id="tp-${t.id}">Has bid</span>`;
+      btn  = `<button class="sm muted" disabled title="Cannot cancel — auction has a bid">Cannot cancel</button>`;
+    } else {
+      pill = `<span class="pill reserve" id="tp-${t.id}">Reserve</span>`;
+      btn  = `<button class="sm warning" id="tb-${t.id}" onclick="delistOne('${t.id}')">Cancel auction</button>`;
+    }
+  } else {
+    pill = `<span class="pill unknown" id="tp-${t.id}">Not detected</span>`;
+    btn  = `<button class="sm muted" id="tb-${t.id}" onclick="delistOne('${t.id}')" title="Try both cancel functions">Try anyway</button>`;
+  }
+
+  row.innerHTML = `<div class="tid">#${t.id}</div><div class="tmeta" id="tm-${t.id}">Loading…</div>${extra}${pill}${btn}`;
+  return row;
+}
+
+function renderSummary(byType) {
+  const bn = byType.buynow.length;
+  const rv = byType.reserve.length;
+  const un = byType.unknown.length;
+  const bidded = byType.reserve.filter(t=>t.hasBid).length;
+  const cancellable = bn + byType.reserve.filter(t=>!t.hasBid).length;
+  document.getElementById('summary-bar').innerHTML = `
+    <div class="summary-stat"><span class="sdot buynow"></span>${bn} Buy Now</div>
+    <div class="summary-stat"><span class="sdot reserve"></span>${rv} Reserve${bidded?` (${bidded} bidded)`:''}  </div>
+    <div class="summary-stat"><span class="sdot unknown"></span>${un} not detected</div>
+    <div class="summary-actions">
+      ${cancellable>0?`<button class="sm danger" onclick="delistAll()">Delist all cancellable (${cancellable})</button>`:''}
+    </div>`;
+}
+
+// ── Metadata
+async function fetchMeta(id) {
+  try {
+    const c = new ethers.Contract(selectedNFT.addr, ERC721_ABI, provider);
+    const uri = await c.tokenURI(id).catch(()=>'');
+    const el = document.getElementById('tm-'+id); if (!el) return;
+    let name = 'Token #'+id;
+    if (uri) { try { if (uri.startsWith('data:application/json;base64,')) { const j=JSON.parse(atob(uri.split(',')[1])); name=j.name||name; } else name=uri.length>55?uri.slice(0,55)+'…':uri; } catch {} }
+    el.textContent = name;
+  } catch { const el=document.getElementById('tm-'+id); if(el) el.textContent='Token #'+id; }
+}
+
+// ── Delist
+async function delistOne(id) {
+  if (!signer) { alert('Connect your wallet first.'); return; }
+  const token = tokens.find(t => t.id===id);
+  if (!token) return;
+
+  const btn  = document.getElementById('tb-'+id);
+  const pill = document.getElementById('tp-'+id);
+  if (btn)  { btn.disabled=true; btn.textContent='Signing…'; }
+  if (pill) { pill.className='pill pending'; pill.textContent='pending'; }
+  token.status = 'pending';
+
+  log(`Delisting #${id} as ${token.type}…`, 'inf');
+  try {
+    const market = new ethers.Contract(selectedMarketAddr, MARKET_ABI, signer);
+    let tx;
+    if (token.type === 'buynow') {
+      log(`→ cancelBuyPrice(${selectedNFT.addr}, ${id})`, 'inf');
+      tx = await market.cancelBuyPrice(selectedNFT.addr, id);
+    } else if (token.type === 'reserve') {
+      const aId = token.auctionId || id;
+      log(`→ cancelReserveAuction(${aId})`, 'inf');
+      tx = await market.cancelReserveAuction(aId);
+    } else {
+      log(`→ Unknown type — trying cancelBuyPrice first…`, 'muted');
+      try { tx = await market.cancelBuyPrice(selectedNFT.addr, id); }
+      catch { log(`→ Buy price failed. Trying cancelReserveAuction(${id})…`, 'muted'); tx = await market.cancelReserveAuction(id); }
+    }
+    if (btn) btn.textContent = 'Mining…';
+    log(`TX: ${tx.hash.slice(0,18)}…`, 'inf');
+    await tx.wait();
+    log(`✓ Token #${id} returned to your wallet!`, 'ok');
+    token.status = 'returned';
+    markReturned(id, token.type);
+    document.getElementById('status4').textContent = tokens.filter(t=>t.status==='returned').length+' returned';
+  } catch(e) {
+    const reason = e.reason||e.shortMessage||e.message||'unknown error';
+    log(`✗ Failed for #${id}: ${reason}`, 'err');
+    token.status = token.hasBid ? 'bidded' : 'listed';
+    if (pill) { const cls={'buynow':'buynow','reserve':'reserve','unknown':'unknown'}[token.type]||'unknown'; pill.className='pill '+cls; pill.textContent=token.type==='buynow'?'Buy Now':token.type==='reserve'?'Reserve':'Not detected'; }
+    if (btn)  { btn.disabled=false; btn.textContent='Retry'; }
+  }
+}
+
+function markReturned(id, origType) {
+  const row = document.getElementById('tr-'+id); if (!row) return;
+  row.className = 'trow done-row';
+  const pill = document.getElementById('tp-'+id);
+  const btn  = document.getElementById('tb-'+id);
+  if (pill) { pill.className='pill returned'; pill.textContent='returned ✓'; }
+  if (btn)  { btn.className='sm success'; btn.disabled=true; btn.textContent='Done ✓'; }
+
+  document.getElementById('list-returned').appendChild(row);
+  document.getElementById('grp-returned').style.display = 'block';
+  document.getElementById('cnt-returned').textContent = tokens.filter(t=>t.status==='returned').length;
+
+  const remaining = tokens.filter(t=>t.type===origType&&t.status!=='returned').length;
+  const cntEl = document.getElementById('cnt-'+origType);
+  if (cntEl) cntEl.textContent = remaining;
+  if (remaining===0) document.getElementById('grp-'+origType).style.display='none';
+
+  const byType = {buynow:[],reserve:[],unknown:[],returned:[]};
+  tokens.forEach(t=>byType[t.status==='returned'?'returned':t.type].push(t));
+  renderSummary(byType);
+}
+
+async function delistGroup(group) {
+  const groupTokens = tokens.filter(t=>t.type===group&&t.status==='listed');
+  if (!groupTokens.length) { log('No cancellable tokens in this group.','muted'); return; }
+  const btn = document.getElementById('btn-delist-'+group);
+  if (btn) btn.disabled=true;
+  log(`Batch delisting ${groupTokens.length} ${group} token(s)…`,'inf');
+  for (const t of groupTokens) { await delistOne(t.id); await new Promise(r=>setTimeout(r,1500)); }
+  if (btn) btn.disabled=false;
+  log('Batch complete.','ok');
+}
+
+async function delistAll() {
+  const cancellable = tokens.filter(t=>t.status==='listed'&&!t.hasBid);
+  if (!cancellable.length) { log('No cancellable tokens remaining.','muted'); return; }
+  log(`Batch delisting all ${cancellable.length} cancellable token(s)…`,'inf');
+  for (const t of cancellable) { await delistOne(t.id); await new Promise(r=>setTimeout(r,1500)); }
+  log('All done.','ok');
+}
+
+// ── Log
+function log(msg, type='muted') {
+  document.getElementById('log-wrap').style.display='block';
+  const el=document.getElementById('activity-log');
+  const line=document.createElement('span');
+  line.className='log-line '+type;
+  line.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(line); el.appendChild(document.createTextNode('\n'));
+  el.scrollTop=el.scrollHeight;
+}
+</script>
+</body>
+</html>
