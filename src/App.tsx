@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// <reference types="vite/client" />
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { TezosToolkit, MichelsonMap } from '@taquito/taquito';
 import { BeaconWallet } from '@taquito/beacon-wallet';
@@ -86,7 +87,14 @@ export default function App() {
   const tezos = useMemo(() => new TezosToolkit(DEFAULT_RPC), []);
   const wallet = useMemo(() => new BeaconWallet({
     name: "Tezos Burn -> Redeem",
-    preferredNetwork: NETWORK as any
+    preferredNetwork: NETWORK as any,
+    eventHandlers: {
+      PERMISSION_REQUEST_SUCCESS: {
+        handler: async (data) => {
+          console.log('Permission request success', data);
+        }
+      }
+    }
   }), []);
 
   const addToast = useCallback((type: 'success' | 'error' | 'info', title: string, sub?: string) => {
@@ -96,6 +104,23 @@ export default function App() {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 5000);
   }, []);
+
+  // Check for active account on mount
+  useEffect(() => {
+    const checkActiveAccount = async () => {
+      try {
+        const activeAccount = await wallet.client.getActiveAccount();
+        if (activeAccount) {
+          setWalletAddress(activeAccount.address);
+          tezos.setWalletProvider(wallet);
+          addToast('info', 'Wallet Session Restored', activeAccount.address.slice(0, 8) + '...');
+        }
+      } catch (err) {
+        console.error('Failed to restore wallet session', err);
+      }
+    };
+    checkActiveAccount();
+  }, [wallet, tezos, addToast]);
 
   // --- Wallet Handlers ---
   const connectWallet = async () => {
@@ -286,7 +311,8 @@ export default function App() {
         <div className="hidden md:flex items-center gap-8">
           <button onClick={() => navigate('collector')} className={`text-[11px] uppercase tracking-widest font-bold transition-all ${page === 'collector' ? 'text-[#1a1a1a]' : 'text-[#1a1a1a]/40 hover:text-[#1a1a1a]'}`}>Exchange</button>
           <button onClick={() => navigate('legacy')} className={`text-[11px] uppercase tracking-widest font-bold transition-all ${page === 'legacy' ? 'text-[#1a1a1a]' : 'text-[#1a1a1a]/40 hover:text-[#1a1a1a]'}`}>Portfolio</button>
-          <button onClick={() => navigate('admin')} className={`text-[11px] uppercase tracking-widest font-bold px-3 py-1 rounded-full transition-all ${page === 'admin' ? 'bg-[#e8573c] text-white' : 'text-[#1a1a1a]/40 hover:text-[#1a1a1a] hover:bg-[#1a1a1a]/5'}`}>Admin</button>
+          <div className="h-4 w-px bg-[#1a1a1a]/10" />
+          <button onClick={() => navigate('admin')} className={`text-[11px] uppercase tracking-widest font-bold px-4 py-2 rounded-full transition-all border ${page === 'admin' ? 'bg-[#e8573c] text-white border-[#e8573c]' : 'text-[#1a1a1a]/60 border-[#1a1a1a]/10 hover:border-[#1a1a1a] hover:text-[#1a1a1a]'}`}>Admin Portal</button>
         </div>
 
         <div className="flex items-center gap-4">
@@ -483,16 +509,27 @@ export default function App() {
                         placeholder="Custodian Key"
                         value={adminPasswordInput}
                         onChange={(e) => setAdminPasswordInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && (adminPasswordInput === ADMIN_PASSWORD ? (setIsAdminAuthenticated(true), addToast('success', 'Access Granted')) : addToast('error', 'Authentication Failure'))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const trimmedInput = adminPasswordInput.trim();
+                            if (trimmedInput === ADMIN_PASSWORD) {
+                              setIsAdminAuthenticated(true);
+                              addToast('success', 'Access Granted');
+                            } else {
+                              addToast('error', 'Authentication Failure', 'Check your Custodian Key');
+                            }
+                          }
+                        }}
                         className="w-full bg-[#1a1a1a]/5 border-none rounded-2xl px-6 py-4 text-center text-sm focus:ring-1 focus:ring-[#1a1a1a]/20 outline-none transition-all"
                       />
                       <button 
                         onClick={() => {
-                          if (adminPasswordInput === ADMIN_PASSWORD) {
+                          const trimmedInput = adminPasswordInput.trim();
+                          if (trimmedInput === ADMIN_PASSWORD) {
                             setIsAdminAuthenticated(true);
                             addToast('success', 'Access Granted');
                           } else {
-                            addToast('error', 'Authentication Failure');
+                            addToast('error', 'Authentication Failure', 'Check your Custodian Key');
                           }
                         }}
                         className="w-full py-4 bg-[#1a1a1a] text-white font-bold uppercase text-[11px] tracking-widest rounded-2xl shadow-lg hover:bg-[#e8573c] active:scale-[0.98] transition-all"
