@@ -1,0 +1,8 @@
+{
+  "name": "Tezos Burn :: Artifact Exchange",
+  "description": "A sophisticated on-chain portal for the transformation of digital artifacts. Exchange FA2 tokens for exclusive rewards through atomic burning on the Tezos blockchain.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
