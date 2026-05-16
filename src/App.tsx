@@ -34,7 +34,7 @@ import { contractCode } from './contract_code';
 const DEFAULT_RPC = 'https://mainnet.api.tez.ie';
 const NETWORK = NetworkType.MAINNET;
 const TZKT_API = 'https://api.tzkt.io';
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
+const ADMIN_PASSWORD = (import.meta.env.VITE_ADMIN_PASSWORD || 'admin123').trim();
 
 type Page = 'collector' | 'admin' | 'legacy';
 
@@ -120,14 +120,27 @@ export default function App() {
   // --- Wallet Handlers ---
   const connectWithBeacon = async () => {
     try {
-      addToast('info', 'Connecting Beacon...', 'Please approve in your wallet extension');
-      await wallet.requestPermissions();
+      addToast('info', 'Connecting Beacon...', 'Opening selector...');
+      // Request permissions with network object
+      await wallet.requestPermissions({
+        network: { type: NETWORK as any, rpcUrl: DEFAULT_RPC }
+      });
       const address = await wallet.getPKH();
       setWalletAddress(address);
       tezos.setWalletProvider(wallet);
-      addToast('success', 'Connected', `${address.slice(0, 8)}...${address.slice(-4)}`);
+      addToast('success', 'Beacon Connected', `${address.slice(0, 8)}...`);
     } catch (e: any) {
-      addToast('error', 'Connection failed', e.message || String(e));
+      console.error('Beacon error:', e);
+      // Fallback: if network property is rejected, try without
+      try {
+        await wallet.requestPermissions();
+        const address = await wallet.getPKH();
+        setWalletAddress(address);
+        tezos.setWalletProvider(wallet);
+        addToast('success', 'Beacon Connected', `${address.slice(0, 8)}...`);
+      } catch (innerE: any) {
+        addToast('error', 'Connection failed', innerE.message || String(innerE));
+      }
     }
   };
 
@@ -141,13 +154,13 @@ export default function App() {
       }
 
       const temple = new TempleWallet("Tezos Burn -> Redeem");
-      await temple.connect(NETWORK as any);
+      await temple.connect('mainnet' as any);
       const address = await temple.getPKH();
       setWalletAddress(address);
       tezos.setWalletProvider(temple as any);
-      addToast('success', 'Connected with Temple', `${address.slice(0, 8)}...${address.slice(-4)}`);
+      addToast('success', 'Temple Connected', `${address.slice(0, 8)}...`);
     } catch (e: any) {
-      addToast('error', 'Temple Connection failed', e.message || String(e));
+      addToast('error', 'Temple failed', e.message || String(e));
     }
   };
 
