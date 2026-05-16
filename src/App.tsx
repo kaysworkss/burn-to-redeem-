@@ -260,9 +260,65 @@ export default function App() {
       addToast('error', 'Connect wallet first');
       return;
     }
-    const storage = `{"prim":"Pair","args":[{"prim":"True"}, {"prim":"Pair","args":[{"string":"${walletAddress}"}, {"prim":"Pair","args":[{"int":"10"}, {"prim":"Pair","args":[{"string":"KT1..."}, {"prim":"Pair","args":[{"int":"0"}, {"prim":"Pair","args":[{"prim":"None"}, {"prim":"Pair","args":[{"int":"1"}, {"prim":"Pair","args":[{"string":"KT1..."}, {"prim":"Pair","args":[{"int":"0"}, {"int":"0"}]}]}]}]}]}]}]}]}]}]}]}`;
+    // Storage structure: (pair %active (pair %admin (pair %burn_amount (pair %burn_token_address (pair %burn_token_id (pair %end_timestamp (pair %reward_amount (pair %reward_token_address (pair %reward_token_id %total_redeemed)))))))))
+    const storage = JSON.stringify({
+      prim: "Pair",
+      args: [
+        { prim: "True" },
+        {
+          prim: "Pair",
+          args: [
+            { string: walletAddress },
+            {
+              prim: "Pair",
+              args: [
+                { int: "1000000" }, // 1 Token (assuming 6 decimals)
+                {
+                  prim: "Pair",
+                  args: [
+                    { string: "KT1PWx2mnDueob7fCqc38CSp1V8pxPNE1S58" }, // Placeholder: tzBTC
+                    {
+                      prim: "Pair",
+                      args: [
+                        { int: "0" },
+                        {
+                          prim: "Pair",
+                          args: [
+                            { prim: "None" }, // No end timestamp
+                            {
+                              prim: "Pair",
+                              args: [
+                                { int: "1000000" },
+                                {
+                                  prim: "Pair",
+                                  args: [
+                                    { string: "KT1PWx2mnDueob7fCqc38CSp1V8pxPNE1S58" },
+                                    {
+                                      prim: "Pair",
+                                      args: [
+                                        { int: "0" },
+                                        { int: "0" }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }, null, 2);
+    
     setDeployStorage(storage);
-    addToast('info', 'Template generated', 'Wallet address injected');
+    addToast('success', 'Storage Injected', 'Connected wallet set as Admin');
   };
 
   // Timer logic
@@ -504,24 +560,29 @@ export default function App() {
                       <p className="text-xs text-[#1a1a1a]/40 font-medium leading-relaxed italic">Access to the administrative portal is strictly restricted to project custodians.</p>
                     </div>
                     <div className="space-y-4">
-                      <input 
-                        type="password" 
-                        placeholder="Custodian Key"
-                        value={adminPasswordInput}
-                        onChange={(e) => setAdminPasswordInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            const trimmedInput = adminPasswordInput.trim();
-                            if (trimmedInput === ADMIN_PASSWORD) {
-                              setIsAdminAuthenticated(true);
-                              addToast('success', 'Access Granted');
-                            } else {
-                              addToast('error', 'Authentication Failure', 'Check your Custodian Key');
+                      <div className="relative">
+                        <input 
+                          type="password" 
+                          placeholder="Custodian Key"
+                          value={adminPasswordInput}
+                          onChange={(e) => setAdminPasswordInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const trimmedInput = adminPasswordInput.trim();
+                              if (trimmedInput === ADMIN_PASSWORD) {
+                                setIsAdminAuthenticated(true);
+                                addToast('success', 'Access Granted');
+                              } else {
+                                addToast('error', 'Authentication Failure', 'Check your Custodian Key');
+                              }
                             }
-                          }
-                        }}
-                        className="w-full bg-[#1a1a1a]/5 border-none rounded-2xl px-6 py-4 text-center text-sm focus:ring-1 focus:ring-[#1a1a1a]/20 outline-none transition-all"
-                      />
+                          }}
+                          className="w-full bg-[#1a1a1a]/5 border-none rounded-2xl px-6 py-4 text-center text-sm focus:ring-1 focus:ring-[#1a1a1a]/20 outline-none transition-all"
+                        />
+                      </div>
+                      <p className="text-[9px] text-center opacity-20 uppercase font-bold tracking-tighter">
+                        {import.meta.env.VITE_ADMIN_PASSWORD ? "Using Custom Security Key" : "Using Default Security Key"}
+                      </p>
                       <button 
                         onClick={() => {
                           const trimmedInput = adminPasswordInput.trim();
