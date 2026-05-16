@@ -580,9 +580,14 @@ export default function App() {
                           className="w-full bg-[#1a1a1a]/5 border-none rounded-2xl px-6 py-4 text-center text-sm focus:ring-1 focus:ring-[#1a1a1a]/20 outline-none transition-all"
                         />
                       </div>
-                      <p className="text-[9px] text-center opacity-20 uppercase font-bold tracking-tighter">
-                        {import.meta.env.VITE_ADMIN_PASSWORD ? "Using Custom Security Key" : "Using Default Security Key"}
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-[9px] text-center opacity-20 uppercase font-bold tracking-tighter">
+                          {import.meta.env.VITE_ADMIN_PASSWORD ? "Using Custom Security Key" : "Using Default Security Key"}
+                        </p>
+                        <p className="text-[8px] text-center opacity-30 italic">
+                          Note: In Vercel, ensure the variable is named <span className="font-bold">VITE_ADMIN_PASSWORD</span>
+                        </p>
+                      </div>
                       <button 
                         onClick={() => {
                           const trimmedInput = adminPasswordInput.trim();
