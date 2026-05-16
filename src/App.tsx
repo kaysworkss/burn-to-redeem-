@@ -8,6 +8,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { TezosToolkit, MichelsonMap } from '@taquito/taquito';
 import { BeaconWallet } from '@taquito/beacon-wallet';
 import { NetworkType } from '@airgap/beacon-sdk';
+import { TempleWallet } from '@temple-wallet/dapp';
 import { 
   Flame, 
   Gift, 
@@ -31,7 +32,7 @@ import { contractCode } from './contract_code';
 
 // --- Constants ---
 const DEFAULT_RPC = 'https://mainnet.api.tez.ie';
-const NETWORK = 'mainnet';
+const NETWORK = NetworkType.MAINNET;
 const TZKT_API = 'https://api.tzkt.io';
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
 
@@ -60,6 +61,7 @@ export default function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showWalletSelector, setShowWalletSelector] = useState(false);
   
   const [cfg, setCfg] = useState<ContractConfig>({
     admin: '',
@@ -88,13 +90,6 @@ export default function App() {
   const wallet = useMemo(() => new BeaconWallet({
     name: "Tezos Burn -> Redeem",
     preferredNetwork: NETWORK as any,
-    eventHandlers: {
-      PERMISSION_REQUEST_SUCCESS: {
-        handler: async (data) => {
-          console.log('Permission request success', data);
-        }
-      }
-    }
   }), []);
 
   const addToast = useCallback((type: 'success' | 'error' | 'info', title: string, sub?: string) => {
@@ -123,10 +118,10 @@ export default function App() {
   }, [wallet, tezos, addToast]);
 
   // --- Wallet Handlers ---
-  const connectWallet = async () => {
+  const connectWithBeacon = async () => {
     try {
-      addToast('info', 'Connecting wallet...', 'Please approve in your wallet extension');
-      await wallet.requestPermissions({ network: { type: NETWORK as any } });
+      addToast('info', 'Connecting Beacon...', 'Please approve in your wallet extension');
+      await wallet.requestPermissions();
       const address = await wallet.getPKH();
       setWalletAddress(address);
       tezos.setWalletProvider(wallet);
@@ -134,6 +129,30 @@ export default function App() {
     } catch (e: any) {
       addToast('error', 'Connection failed', e.message || String(e));
     }
+  };
+
+  const connectWithTemple = async () => {
+    try {
+      addToast('info', 'Connecting Temple...', 'Checking extension...');
+      const available = await TempleWallet.isAvailable();
+      if (!available) {
+        window.open('https://templewallet.com/', '_blank');
+        throw new Error('Temple Wallet extension not found');
+      }
+
+      const temple = new TempleWallet("Tezos Burn -> Redeem");
+      await temple.connect(NETWORK as any);
+      const address = await temple.getPKH();
+      setWalletAddress(address);
+      tezos.setWalletProvider(temple as any);
+      addToast('success', 'Connected with Temple', `${address.slice(0, 8)}...${address.slice(-4)}`);
+    } catch (e: any) {
+      addToast('error', 'Temple Connection failed', e.message || String(e));
+    }
+  };
+
+  const connectWallet = async () => {
+    setShowWalletSelector(true);
   };
 
   const disconnectWallet = async () => {
@@ -407,6 +426,78 @@ export default function App() {
                    {walletAddress ? `Disconnect (${walletAddress.slice(0, 6)}...)` : 'Connect Wallet'}
                 </button>
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {/* Wallet Selector Modal */}
+        <AnimatePresence>
+          {showWalletSelector && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#1a1a1a]/40 backdrop-blur-sm"
+              onClick={() => setShowWalletSelector(false)}
+            >
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl space-y-6"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="text-center space-y-2">
+                  <h3 className="font-serif italic text-2xl">Select Provider</h3>
+                  <p className="text-xs text-[#1a1a1a]/40">Choose your preferred Tezos connection</p>
+                </div>
+
+                <div className="grid gap-3">
+                  <button 
+                    onClick={() => {
+                      setShowWalletSelector(false);
+                      connectWithTemple();
+                    }}
+                    className="flex items-center justify-between p-4 bg-[#1a1a1a]/5 hover:bg-[#1a1a1a]/10 rounded-2xl transition-all group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center border border-[#1a1a1a]/5">
+                        <img src="https://templewallet.com/logo.png" alt="Temple" className="w-6 h-6 object-contain" />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-sm font-bold">Temple Wallet</div>
+                        <div className="text-[10px] opacity-40 uppercase tracking-wider font-medium">Native Extension</div>
+                      </div>
+                    </div>
+                    <ArrowRight size={16} className="opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setShowWalletSelector(false);
+                      connectWithBeacon();
+                    }}
+                    className="flex items-center justify-between p-4 bg-[#1a1a1a]/5 hover:bg-[#1a1a1a]/10 rounded-2xl transition-all group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center border border-[#1a1a1a]/5">
+                         <div className="w-6 h-6 bg-[#e8573c] rounded-full flex items-center justify-center text-white text-[8px] font-bold">B</div>
+                      </div>
+                      <div className="text-left">
+                        <div className="text-sm font-bold">Beacon / Kukai</div>
+                        <div className="text-[10px] opacity-40 uppercase tracking-wider font-medium">Multi-Wallet Support</div>
+                      </div>
+                    </div>
+                    <ArrowRight size={16} className="opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                  </button>
+                </div>
+
+                <button 
+                  onClick={() => setShowWalletSelector(false)}
+                  className="w-full py-4 text-[10px] font-bold uppercase tracking-widest text-[#1a1a1a]/40 hover:text-[#1a1a1a] transition-all"
+                >
+                  Cancel
+                </button>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
